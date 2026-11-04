@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+.DS_Store
+skills/
+release_version.txt
+release_title.txt
+release_name.txt
+release_notes.md
+droplet_name.txt
