@@ -223,24 +223,31 @@ public enum FringeLogExporter {
         }
 
         let dateString = dateFormatter.string(from: date)
-        let archiveName = "Fringe-Logs-\(dateString).zip"
-        let archiveURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(archiveName)
-
+        let archiveURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("Fringe-Logs-\(dateString).zip")
         if fileManager.fileExists(atPath: archiveURL.path) {
             try? fileManager.removeItem(at: archiveURL)
         }
 
-        let filePaths = logFiles.map(\.path)
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        process.arguments = ["-q", "-j", archiveURL.path] + filePaths
-        try process.run()
-        process.waitUntilExit()
+        // Foundation zips the folder itself (a coordinated read "for
+        // uploading"), so no process is started inside Droppy. Off the main
+        // thread: it reads and compresses every log file.
+        try await Task.detached(priority: .utility) {
+            var coordinationError: NSError?
+            var copyError: Error?
+            NSFileCoordinator().coordinate(readingItemAt: directory, options: .forUploading, error: &coordinationError) { zipURL in
+                do {
+                    try FileManager.default.copyItem(at: zipURL, to: archiveURL)
+                } catch {
+                    copyError = error
+                }
+            }
+            if let error = coordinationError ?? copyError { throw error }
+        }.value
 
         guard fileManager.fileExists(atPath: archiveURL.path) else {
-            throw NSError(domain: "FringeLogExporter", code: 2, userInfo: [NSLocalizedDescriptionKey: "Zip archive was not created."])
+            throw NSError(domain: "FringeLogExporter", code: 2, userInfo: [NSLocalizedDescriptionKey: "The log archive was not created."])
         }
-
         return archiveURL
     }
 
@@ -261,7 +268,8 @@ public enum FringeLogExporter {
 }
 
 extension DropletKeyboardShortcut {
-    public var displayString: String {
+    /// The shortcut as Droppy's Shortcuts page writes it, for the settings row.
+    var displayString: String {
         var result = ""
         let flags = NSEvent.ModifierFlags(rawValue: modifiers)
         if flags.contains(.control) { result += "⌃" }

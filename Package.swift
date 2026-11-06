@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "Fringe", type: .dynamic, targets: ["Fringe"])
     ],
     dependencies: [
-        .package(url: "https://gitlab.com/droppyformac1/droppykit.git", from: "1.22.0")
+        .package(url: "https://gitlab.com/droppyformac1/droppykit.git", from: "1.16.0")
     ],
     targets: [
         .target(

@@ -1,17 +1,23 @@
 {
   "id": "fringe",
   "name": "Fringe",
-  "version": "1.0.0",
-  "summary": "Control volume and brightness from trackpad edges",
-  "description": "Fringe turns the outer edges of your trackpad into tactile physical sliders. Drag along the left, right, or top edge to smoothly adjust system volume, display brightness, or keyboard backlight.\n\nFringe uses listen-only input and native macOS media key events to integrate directly with Droppy's notch HUD. Extreme edge detection, palm rejection, and optional modifier key guards (Fn, Option, Control, Command) keep your gestures deliberate and avoid interfering with everyday navigation.",
+  "version": "1.0.5",
+  "summary": "Volume and brightness from your trackpad's edges",
+  "description": "Fringe turns the edges of your trackpad into sliders. Start a one-finger drag in a corner and slide along the edge: the left edge sets the volume, the right edge the display brightness and the top edge the keyboard backlight, with a click from the Force Touch trackpad at every step and Droppy's own HUD in the notch.\n\nFringe only listens to the trackpad and never blocks a touch. A resting palm or a second finger never counts, a drag that wanders into the middle stops, and you can ask for a key to be held while you drag. Each edge can do something else or nothing at all, and the shelf widget pauses everything in one click.",
   "category": "System",
   "kit": {
     "abi": 1,
-    "minAPI": "1.22.0"
+    "minAPI": "1.16.0"
   },
-  "minAppVersion": "16.0.1",
-  "capabilities": ["accessibility", "global-shortcuts"],
-  "surfaces": ["shelf-widget", "settings-pane"],
+  "minAppVersion": "15.3.0",
+  "capabilities": [
+    "accessibility",
+    "global-shortcuts"
+  ],
+  "surfaces": [
+    "shelf-widget",
+    "settings-pane"
+  ],
   "icon": "Fringe.icon",
   "creator": {
     "name": "Dinanath Dash",

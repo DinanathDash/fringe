@@ -20,15 +20,14 @@ public final class FringePrincipal: NSObject, DropletPrincipal {
 public final class FringeDroplet: NSObject, ObservableObject, Droplet {
     public nonisolated static let id: DropletID = "fringe"
     public static let widgetID: ShelfWidgetID = "fringe.main"
+    static let toggleShortcutID = "fringe.toggle"
 
     public let engine = FringeEngine()
     public private(set) var host: DropletHost?
 
-    @Published public var isEnabled: Bool = true {
-        didSet {
-            engine.settings.isEnabled = isEnabled
-        }
-    }
+    /// Whether the edge gestures are on. The engine's settings are the one
+    /// place this lives, so the widget and the settings page always agree.
+    public var isEnabled: Bool { engine.settings.isEnabled }
 
     public override init() {
         super.init()
@@ -36,14 +35,13 @@ public final class FringeDroplet: NSObject, ObservableObject, Droplet {
 
     public func activate(host: DropletHost) throws {
         self.host = host
-        self.isEnabled = engine.settings.isEnabled
         FringeRotatingFileLogSink.setup()
         FringeLog.info("Fringe activated")
         host.log.info("Fringe activated")
 
         host.shortcuts.register(
-            id: "fringe.toggle",
-            title: "Toggle Fringe gestures",
+            id: Self.toggleShortcutID,
+            title: "Pause or resume Fringe",
             defaultShortcut: nil
         ) { [weak self] in
             self?.toggleEnabled()
@@ -54,16 +52,16 @@ public final class FringeDroplet: NSObject, ObservableObject, Droplet {
 
     public func deactivate() {
         FringeLog.info("Fringe deactivating")
-        host?.shortcuts.unregister(id: "fringe.toggle")
+        host?.shortcuts.unregister(id: Self.toggleShortcutID)
         engine.stop()
         FringeRotatingFileLogSink.shared.flush()
         host = nil
     }
 
     public func toggleEnabled() {
-        isEnabled.toggle()
-        FringeLog.info("Fringe isEnabled toggled to \(self.isEnabled)")
-        host?.log.info("Fringe isEnabled toggled to \(self.isEnabled)")
+        engine.settings.isEnabled.toggle()
+        FringeLog.info("Fringe gestures \(engine.settings.isEnabled ? "on" : "paused")")
+        host?.log.info("Fringe gestures \(engine.settings.isEnabled ? "on" : "paused")")
     }
 }
 
@@ -75,19 +73,18 @@ extension FringeDroplet: ShelfWidgetProviding {
             ShelfWidgetDescriptor(
                 id: Self.widgetID,
                 title: "Fringe",
-                systemImage: "slider.vertical.3",
+                systemImage: "hand.point.up.left",
                 layoutTraits: ShelfWidgetLayoutTraits(
                     preferredSoloWidth: 420,
                     preferredPairedWidth: 210,
-                    contentHeight: .fixed(100),
-                    notchWrap: ShelfWidgetNotchWrapTraits(headerHeight: 34, minimumBandWidth: 64)
+                    contentHeight: .fixed(FringeWidgetView.contentHeight)
                 )
             )
         ]
     }
 
     public func makeWidgetView(_ id: ShelfWidgetID, context: ShelfWidgetContext) -> AnyView {
-        AnyView(FringeWidgetView(droplet: self, context: context))
+        AnyView(FringeWidgetView(engine: engine, context: context, toggle: { [weak self] in self?.toggleEnabled() }))
     }
 
     public func makeWidgetSettingsPopover(_ id: ShelfWidgetID) -> AnyView? { nil }
