@@ -55,6 +55,21 @@ struct EngineTests {
         engine.stop()
     }
 
+    @Test("A listener that failed to start is tried again, not kept")
+    func failedListenerIsRetried() {
+        world.trusted = true
+        world.listenerCanStart = false
+        let engine = makeEngine()
+        engine.start(with: host)
+        #expect(engine.isListening == false)
+
+        world.listenerCanStart = true
+        engine.refreshAccessibilityStatus()
+
+        #expect(engine.isListening)
+        engine.stop()
+    }
+
     @Test("Pausing Fringe stops the listener; resuming starts it again")
     func pauseAndResume() {
         world.trusted = true

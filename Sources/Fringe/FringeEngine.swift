@@ -113,11 +113,13 @@ public final class FringeEngine: ObservableObject {
         stopRetryTimer()
 
         let config = FringeGestureConfig(settings: settings)
-        if let tap {
+        if let tap, tap.isRunning {
             tap.update(config)
-            isListening = tap.isRunning
+            isListening = true
             return
         }
+        // A listener that never started is replaced, not updated.
+        stopListening()
 
         let tap = makeListener(config) { [weak self] effect in
             self?.apply(effect)
