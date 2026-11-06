@@ -115,11 +115,14 @@ public final class FringeRotatingFileLogSink: @unchecked Sendable {
     }
 
     private func write(_ data: Data) {
+        if fileHandle == nil {
+            prepareLogFile()
+        }
         guard let fileHandle else { return }
         if currentFileSize + UInt64(data.count) > maxFileSize {
             rotate()
         }
-        fileHandle.write(data)
+        try? fileHandle.write(contentsOf: data)
         currentFileSize += UInt64(data.count)
     }
 
@@ -203,8 +206,13 @@ public enum FringeLogExporter {
 
         let mainLogURL = directory.appendingPathComponent("fringe.log")
         if !fileManager.fileExists(atPath: mainLogURL.path) {
-            FringeLog.info("Log session initialized for export")
-            FringeRotatingFileLogSink.shared.flush()
+            if directory == FringeRotatingFileLogSink.defaultLogDirectory {
+                FringeLog.info("Log session initialized for export")
+                FringeRotatingFileLogSink.shared.flush()
+            }
+            if !fileManager.fileExists(atPath: mainLogURL.path) {
+                fileManager.createFile(atPath: mainLogURL.path, contents: "Fringe log session initialized\n".data(using: .utf8))
+            }
         }
 
         let contents = try fileManager.contentsOfDirectory(
@@ -259,8 +267,11 @@ public enum FringeLogExporter {
             FringeRotatingFileLogSink.shared.flush()
         }
         let currentLog = directory.appendingPathComponent("fringe.log")
+        if !fileManager.fileExists(atPath: currentLog.path) {
+            fileManager.createFile(atPath: currentLog.path, contents: nil)
+        }
         if fileManager.fileExists(atPath: currentLog.path) {
-            NSWorkspace.shared.selectFile(currentLog.path, inFileViewerRootedAtPath: directory.path)
+            NSWorkspace.shared.activateFileViewerSelecting([currentLog])
         } else {
             NSWorkspace.shared.open(directory)
         }

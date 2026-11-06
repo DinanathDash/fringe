@@ -258,6 +258,8 @@ public struct FringeSettingsPane: View {
                 panel.allowedContentTypes = [.zip]
                 panel.canCreateDirectories = true
 
+                NSApp.activate(ignoringOtherApps: true)
+
                 if panel.runModal() == .OK, let destinationURL = panel.url {
                     let fileManager = FileManager.default
                     if fileManager.fileExists(atPath: destinationURL.path) {

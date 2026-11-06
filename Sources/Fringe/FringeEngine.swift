@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import ApplicationServices
 import Combine
 import CoreGraphics
 import DroppyKit
@@ -184,6 +185,8 @@ public final class FringeEngine: ObservableObject {
     }
 
     public func openAccessibilitySettings() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
         let script = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
         if let url = URL(string: script) {
             NSWorkspace.shared.open(url)
