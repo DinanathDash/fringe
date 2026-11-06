@@ -73,6 +73,28 @@ struct CornerTests {
         #expect(pad.effects.filter(isCornerTrigger) == [.cornerTriggered(.topRight, .mute)])
     }
 
+    @Test("A double-tap counts when the trackpad marks the corner touches as resting")
+    func restingDoubleTapCounts() {
+        var pad = TrackpadScript()
+        for gap in [0.01, 0.15] {
+            let k = pad.newKey()
+            pad.event([touch(k, .began, pt(0.95, 0.95), resting: true)], after: gap)
+            pad.event([touch(k, .ended, pt(0.95, 0.95), resting: true)], after: 0.08)
+        }
+
+        #expect(pad.effects.filter(isCornerTrigger) == [.cornerTriggered(.topRight, .mute)])
+    }
+
+    @Test("A resting touch in a corner still can't start an edge drag")
+    func restingCornerTouchDoesNotDrag() {
+        var pad = TrackpadScript()
+        let k = pad.newKey()
+        pad.event([touch(k, .began, pt(0.02, 0.98), resting: true)])
+        pad.event([touch(k, .moved, pt(0.02, 0.80), resting: true)])
+
+        #expect(pad.effects.isEmpty)
+    }
+
     @Test("A single tap does nothing")
     func singleTap() {
         var pad = TrackpadScript()

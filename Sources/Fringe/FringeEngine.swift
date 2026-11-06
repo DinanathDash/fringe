@@ -518,9 +518,15 @@ struct FringeGestureTracker {
         // resting state on that moving contact.
         if surfaceTouches.count > 1 || (!isEngaged && surfaceTouches.contains(where: { $0.isResting })) {
             endGesture(&effects)
-            activeTapCandidate = nil
             for touch in surfaceTouches {
                 disqualifiedTouches.insert(touch.key)
+            }
+            // One resting finger can still tap: the firmware often flags corner contacts as resting.
+            if surfaceTouches.count == 1, let touch = surfaceTouches.first, config.modifierGuard.matches(flags: flags) {
+                trackTap(touch, now: now)
+                seenTouches.insert(touch.key)
+            } else {
+                activeTapCandidate = nil
             }
             return effects
         }
@@ -534,28 +540,8 @@ struct FringeGestureTracker {
 
         let margin = config.margin
 
-        // Tap candidate tracking for a single touch in any corner.
         if let touch = surfaceTouches.first {
-            if activeTapCandidate == nil && !seenTouches.contains(touch.key) {
-                let corner = Self.corner(at: touch.position)
-                if corner != nil {
-                    activeTapCandidate = TapCandidate(
-                        touchKey: touch.key,
-                        startPos: touch.position,
-                        startTime: now,
-                        corner: corner,
-                        maxDisplacement: 0
-                    )
-                }
-            } else if var candidate = activeTapCandidate, candidate.touchKey == touch.key {
-                let disp = hypot(touch.position.x - candidate.startPos.x, touch.position.y - candidate.startPos.y)
-                candidate.maxDisplacement = max(candidate.maxDisplacement, disp)
-                if candidate.maxDisplacement > Self.maxTapDisplacement * 1.5 {
-                    activeTapCandidate = nil
-                } else {
-                    activeTapCandidate = candidate
-                }
-            }
+            trackTap(touch, now: now)
         }
 
         // Not dragging yet: this touch may start a drag. One picked in a
@@ -643,6 +629,29 @@ struct FringeGestureTracker {
             return effects
         }
         return effects
+    }
+
+    private mutating func trackTap(_ touch: FringeTouch, now: TimeInterval) {
+        if activeTapCandidate == nil && !seenTouches.contains(touch.key) {
+            let corner = Self.corner(at: touch.position)
+            if corner != nil {
+                activeTapCandidate = TapCandidate(
+                    touchKey: touch.key,
+                    startPos: touch.position,
+                    startTime: now,
+                    corner: corner,
+                    maxDisplacement: 0
+                )
+            }
+        } else if var candidate = activeTapCandidate, candidate.touchKey == touch.key {
+            let disp = hypot(touch.position.x - candidate.startPos.x, touch.position.y - candidate.startPos.y)
+            candidate.maxDisplacement = max(candidate.maxDisplacement, disp)
+            if candidate.maxDisplacement > Self.maxTapDisplacement * 1.5 {
+                activeTapCandidate = nil
+            } else {
+                activeTapCandidate = candidate
+            }
+        }
     }
 
     /// Corner region check for double-tap gestures.
