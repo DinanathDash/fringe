@@ -2,11 +2,21 @@
 
 ## [1.0.5] - 2026-11-05
 
-- Updated shelf widget with a two-row layout: corners in the first row (Top-left, Top-right, Bottom-left, Bottom-right) and edges in the second row (Left, Top, Right, Bottom) separated into distinct rounded dashed border containers, with content height increased to 186 pt.
+- Redesigned shelf widget into a calm, borderless 3x3 trackpad map matching native Droppy widget design (415 x 143 pt):
+- 3x3 physical map: corners in the corners, edges on the sides, each showing action glyph and short name (`Screenshots`, `Keyboard`, `Mute`, `Volume`, `Brightness`, `Play / Pause`, `Lock`, `Skip`, or `Off`).
+  - Position explains itself: moves gesture explanations into tooltips (`.help`).
+  - Unused spots show plain `Off` in tertiary text without card borders or frames.
+  - Replaced glass active pill with standard `DroppyWashCircleButtonStyle` pause/resume wash disc (`.accent(.green)` / `.neutral`).
+  - Centered "Paused" status indicator in the middle of the map when gestures are paused.
+  - Wrapped header around the camera notch via `ShelfWidgetNotchWrapRow` with `headerHeight: 34, minimumBandWidth: 64`.
+  - Header styling aligned to 12pt medium glyph + 12pt semibold title in secondary text.
+  - Paired/compact layout automatically switches to glyph-only map via `ViewThatFits(in: .horizontal)`.
+  - Bumped `minAPI` to `1.22.0` for wash controls and notch wrap row support.
 - Added Corner double-tap gestures with configurable actions for all four corners:
   - Corner mute: double-tap a corner (default top-right) to mute/unmute your Mac.
   - Screenshots: double-tap a corner (default top-left) to capture a full screenshot directly saved to your Desktop folder (`Screenshot YYYY-MM-DD at h.mm.ss a.png`).
   - Play or pause: double-tap a corner to toggle media playback.
+  - Lock screen: double-tap a corner to immediately lock your display.
   - Also configurable to Off for any corner in Settings.
 - Added "Skip tracks" sliding action on trackpad edges with dedicated icon (`forward.end.fill`):
   - Slide along the edge to skip by exactly one track per swipe (forward/up or backward/down).

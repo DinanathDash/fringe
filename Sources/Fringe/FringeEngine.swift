@@ -880,7 +880,23 @@ enum FringeMediaKeys {
             takeDirectScreenshot()
         case .playPause:
             playPause()
+        case .lockScreen:
+            lockScreen()
         }
+    }
+
+    private typealias SACLockScreenImmediateFunc = @convention(c) () -> Int32
+
+    static func lockScreen() {
+        guard let handle = dlopen("/System/Library/PrivateFrameworks/login.framework/Versions/Current/login", RTLD_LAZY) else {
+            return
+        }
+        defer { dlclose(handle) }
+        guard let sym = dlsym(handle, "SACLockScreenImmediate") else {
+            return
+        }
+        let function = unsafeBitCast(sym, to: SACLockScreenImmediateFunc.self)
+        _ = function()
     }
 
     static func takeDirectScreenshot() {

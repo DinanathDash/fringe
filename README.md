@@ -4,7 +4,7 @@ Control system volume, display brightness, keyboard backlight, and track playbac
 
 ## The idea
 
-Fringe turns the idle outer margins of your MacBook trackpad or Magic Trackpad into sliders and quick triggers. Rather than reaching for function keys or opening Control Center, you slide along an edge, or double-tap a corner to mute, capture a screenshot, or toggle playback.
+Fringe turns the idle outer margins of your MacBook trackpad or Magic Trackpad into sliders and quick triggers. Rather than reaching for function keys or opening Control Center, you slide along an edge, or double-tap a corner to mute, capture a screenshot, lock the screen, or toggle playback.
 
 ## Why it matters
 
@@ -17,6 +17,7 @@ It is a fluid, tactile way to control volume, brightness, and media without brea
    - **Corner mute**: double-tap a corner (default top-right) to mute/unmute your Mac.
    - **Screenshots**: double-tap a corner (default top-left) to capture a full screenshot directly saved to your Desktop folder (`Screenshot YYYY-MM-DD at h.mm.ss a.png`).
    - **Play or pause**: double-tap a corner to toggle media playback.
+   - **Lock screen**: double-tap a corner to instantly lock your Mac screen.
    - Each of the four corners can be configured to any of these actions or Off.
 3. **Track edge controls**:
    - **Skip tracks**: slide once along an edge set to Skip tracks to skip forward (slide right/up) or backward (slide left/down) by a single track per swipe. Edges are strictly reserved for sliding gestures so they never conflict with taps or corner actions.
@@ -31,7 +32,7 @@ It is a fluid, tactile way to control volume, brightness, and media without brea
 
 ## Surfaces
 
-- **Shelf widget**: what each corner and edge does in a clean two-row layout (first row corners, second row edges), and an Active switch that pauses every gesture. In a row with other widgets it shows the actions as symbols.
+- **Shelf widget**: a 3x3 trackpad map showing corners in the corners and edges on the sides wrapped around the camera notch (415 x 143 pt), with single-tap wash pause control. In a row with other widgets it adapts seamlessly to glyphs.
 - **Settings pane**: permissions status, gestures switch, corner actions, each edge's action, key to hold, edge width, start zone, travel per step, haptics, and logs.
 
 ## Permissions

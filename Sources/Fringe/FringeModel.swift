@@ -83,6 +83,7 @@ public enum FringeCornerAction: String, CaseIterable, Identifiable, Codable, Sen
     case mute = "Mute"
     case screenshot = "Screenshots"
     case playPause = "Play / Pause"
+    case lockScreen = "Lock Screen"
 
     public var id: String { rawValue }
 
@@ -92,6 +93,7 @@ public enum FringeCornerAction: String, CaseIterable, Identifiable, Codable, Sen
         case .mute: return "Mute volume"
         case .screenshot: return "Screenshots"
         case .playPause: return "Play / Pause"
+        case .lockScreen: return "Lock Screen"
         }
     }
 
@@ -100,7 +102,8 @@ public enum FringeCornerAction: String, CaseIterable, Identifiable, Codable, Sen
         case .none: return "Off"
         case .mute: return "Mute"
         case .screenshot: return "Screenshots"
-        case .playPause: return "Play/Pause"
+        case .playPause: return "Play / Pause"
+        case .lockScreen: return "Lock"
         }
     }
 
@@ -110,6 +113,7 @@ public enum FringeCornerAction: String, CaseIterable, Identifiable, Codable, Sen
         case .mute: return "speaker.slash.fill"
         case .screenshot: return "camera.viewfinder"
         case .playPause: return "playpause.fill"
+        case .lockScreen: return "lock.fill"
         }
     }
 
@@ -123,6 +127,8 @@ public enum FringeCornerAction: String, CaseIterable, Identifiable, Codable, Sen
             self = .screenshot
         case "play / pause", "playpause", "play/pause", "media":
             self = .playPause
+        case "lock screen", "lock", "lock mac", "screen lock":
+            self = .lockScreen
         case "disabled", "none", "off":
             self = .none
         default:
@@ -165,7 +171,7 @@ public enum FringeAction: String, CaseIterable, Identifiable, Codable, Sendable 
         case .volume: return "Volume"
         case .brightness: return "Brightness"
         case .keyboardBrightness: return "Keyboard"
-        case .media: return "Tracks"
+        case .media: return "Skip"
         case .none: return "Off"
         }
     }
@@ -180,7 +186,7 @@ public enum FringeAction: String, CaseIterable, Identifiable, Codable, Sendable 
             self = .brightness
         case "keyboard backlight", "keyboard light", "keyboard":
             self = .keyboardBrightness
-        case "skip tracks", "tracks", "media", "music", "play/pause":
+        case "skip tracks", "skip", "tracks", "media", "music", "play/pause":
             self = .media
         case "disabled", "none", "off":
             self = .none

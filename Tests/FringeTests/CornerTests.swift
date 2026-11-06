@@ -64,6 +64,17 @@ struct CornerTests {
         ])
     }
 
+    @Test("Double-tapping a corner set to lock screen triggers lockScreen")
+    func doubleTapLockScreen() {
+        var settings = FringeSettings()
+        settings.setAction(.lockScreen, for: .bottomLeft)
+        var pad = TrackpadScript(settings)
+        pad.tap(at: pt(0.05, 0.05))
+        pad.tap(at: pt(0.05, 0.05), after: 0.15)
+
+        #expect(pad.effects.filter(isCornerTrigger) == [.cornerTriggered(.bottomLeft, .lockScreen)])
+    }
+
     @Test("Double-tapping the top right corner mutes")
     func doubleTapTopRightMutes() {
         var pad = TrackpadScript()

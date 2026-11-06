@@ -41,6 +41,7 @@ struct SettingsTests {
         ("KEYBOARD LIGHT", .keyboardBrightness),
         ("off", .none),
         ("Skip tracks", .media),
+        ("skip", .media),
     ])
     func legacyActionNames(raw: String, expected: FringeAction) throws {
         #expect(try decode(#"{"leftAction": "\#(raw)"}"#).leftAction == expected)
@@ -60,6 +61,10 @@ struct SettingsTests {
         ("Screenshot toolbar (⌘⇧5)", FringeCornerAction.screenshot),
         ("mute mac", .mute),
         ("media", .playPause),
+        ("lock screen", .lockScreen),
+        ("lock", .lockScreen),
+        ("lock mac", .lockScreen),
+        ("screen lock", .lockScreen),
     ])
     func legacyCornerNames(raw: String, expected: FringeCornerAction) throws {
         #expect(try decode(#"{"topLeftCornerAction": "\#(raw)"}"#).topLeftCornerAction == expected)

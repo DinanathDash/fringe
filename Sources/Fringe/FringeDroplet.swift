@@ -19,15 +19,11 @@ public final class FringePrincipal: NSObject, DropletPrincipal {
 @MainActor
 public final class FringeDroplet: NSObject, ObservableObject, Droplet {
     public nonisolated static let id: DropletID = "fringe"
-    public static let widgetID: ShelfWidgetID = "fringe.main"
-    static let toggleShortcutID = "fringe.toggle"
+    public static let widgetID: ShelfWidgetID = "fringe.widget"
+    public static let toggleShortcutID = "fringe.toggle"
 
     public let engine = FringeEngine()
     public private(set) var host: DropletHost?
-
-    /// Whether the edge gestures are on. The engine's settings are the one
-    /// place this lives, so the widget and the settings page always agree.
-    public var isEnabled: Bool { engine.settings.isEnabled }
 
     public override init() {
         super.init()
@@ -41,7 +37,7 @@ public final class FringeDroplet: NSObject, ObservableObject, Droplet {
 
         host.shortcuts.register(
             id: Self.toggleShortcutID,
-            title: "Pause or resume Fringe",
+            title: "Pause or resume Fringe gestures",
             defaultShortcut: nil
         ) { [weak self] in
             self?.toggleEnabled()
@@ -58,6 +54,8 @@ public final class FringeDroplet: NSObject, ObservableObject, Droplet {
         host = nil
     }
 
+    // MARK: - Actions
+
     public func toggleEnabled() {
         engine.settings.isEnabled.toggle()
         FringeLog.info("Fringe gestures \(engine.settings.isEnabled ? "on" : "paused")")
@@ -73,18 +71,21 @@ extension FringeDroplet: ShelfWidgetProviding {
             ShelfWidgetDescriptor(
                 id: Self.widgetID,
                 title: "Fringe",
-                systemImage: "hand.point.up.left",
+                systemImage: "slider.vertical.3",
                 layoutTraits: ShelfWidgetLayoutTraits(
-                    preferredSoloWidth: 420,
-                    preferredPairedWidth: 210,
-                    contentHeight: .fixed(FringeWidgetView.contentHeight)
+                    preferredSoloWidth: 415,
+                    preferredPairedWidth: 200,
+                    contentHeight: .fixed(FringeWidgetView.contentHeight),
+                    notchWrap: ShelfWidgetNotchWrapTraits(headerHeight: 34, minimumBandWidth: 64)
                 )
             )
         ]
     }
 
     public func makeWidgetView(_ id: ShelfWidgetID, context: ShelfWidgetContext) -> AnyView {
-        AnyView(FringeWidgetView(engine: engine, context: context, toggle: { [weak self] in self?.toggleEnabled() }))
+        AnyView(FringeWidgetView(engine: engine, context: context, toggle: { [weak self] in
+            self?.toggleEnabled()
+        }))
     }
 
     public func makeWidgetSettingsPopover(_ id: ShelfWidgetID) -> AnyView? { nil }
