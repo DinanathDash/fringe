@@ -29,6 +29,7 @@
 - Added Accessibility permission status row in Settings with an "Open Settings" button and automatic listener retry as soon as Accessibility is granted.
 - Added "Needs permission" status indicator in the shelf widget header when Accessibility is missing.
 - Added `.bottom` edge column to the shelf widget display.
+- Export logs now presents the save panel asynchronously via `panel.begin` instead of `runModal()`, preventing modal event loops from blocking Droppy's main thread and capture shortcuts.
 - Added bottom edge configuration with bi-directional adjustment (slide right from the left third to increase, slide left from the right third to decrease).
 
 ## [1.0.4] - 2026-11-05

@@ -247,10 +247,8 @@ public struct FringeSettingsPane: View {
     private func exportLogs() {
         isExporting = true
         Task { @MainActor in
-            defer { isExporting = false }
             do {
                 let archiveURL = try await FringeLogExporter.exportLogs()
-                defer { try? FileManager.default.removeItem(at: archiveURL) }
 
                 let panel = NSSavePanel()
                 panel.title = "Export logs"
@@ -260,14 +258,26 @@ public struct FringeSettingsPane: View {
 
                 NSApp.activate(ignoringOtherApps: true)
 
-                if panel.runModal() == .OK, let destinationURL = panel.url {
-                    let fileManager = FileManager.default
-                    if fileManager.fileExists(atPath: destinationURL.path) {
-                        try fileManager.removeItem(at: destinationURL)
+                panel.begin { response in
+                    defer {
+                        try? FileManager.default.removeItem(at: archiveURL)
+                        self.isExporting = false
                     }
-                    try fileManager.copyItem(at: archiveURL, to: destinationURL)
+
+                    guard response == .OK, let destinationURL = panel.url else { return }
+
+                    do {
+                        let fileManager = FileManager.default
+                        if fileManager.fileExists(atPath: destinationURL.path) {
+                            try fileManager.removeItem(at: destinationURL)
+                        }
+                        try fileManager.copyItem(at: archiveURL, to: destinationURL)
+                    } catch {
+                        FringeLog.error("Export logs failed: \(error.localizedDescription)")
+                    }
                 }
             } catch {
+                isExporting = false
                 FringeLog.error("Export logs failed: \(error.localizedDescription)")
             }
         }
