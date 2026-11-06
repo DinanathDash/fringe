@@ -38,5 +38,6 @@ It is a fluid, tactile way to control volume, brightness, and media without brea
 
 - **Accessibility**: Droppy's trust, which the listen-only event tap and the posted media keys need.
 - **Global shortcuts**: the pause shortcut on Droppy's Shortcuts page.
+- **Screen capture**: the Screenshots corner action; without it macOS saves the desktop with no windows.
 
 Fringe makes no network connection.

@@ -25,13 +25,17 @@ public final class FringeEngine: ObservableObject {
     }
 
     @Published public private(set) var state: FringeLiveState = FringeLiveState()
-    @Published public private(set) var isAccessibilityGranted: Bool = AXIsProcessTrusted()
+    @Published public private(set) var isAccessibilityGranted: Bool
     @Published public private(set) var isListening: Bool = false
 
     public private(set) var host: DropletHost?
-    private var tap: FringeEdgeTap?
+    private var tap: (any FringeListening)?
     private var isLoadingSettings = false
     private var retryTimer: Timer?
+
+    /// Injected so tests can fake Accessibility and the event tap.
+    private let isAccessibilityTrusted: () -> Bool
+    private let makeListener: (FringeGestureConfig, @escaping (FringeGestureEffect) -> Void) -> any FringeListening
 
     public var shortcutLabel: String {
         if let shortcut = host?.shortcuts.currentShortcut(id: FringeDroplet.toggleShortcutID) {
@@ -40,7 +44,19 @@ public final class FringeEngine: ObservableObject {
         return "Set up"
     }
 
-    public init() {}
+    public convenience init() {
+        self.init(isAccessibilityTrusted: { AXIsProcessTrusted() },
+                  makeListener: { FringeEdgeTap(config: $0, onEffect: $1) })
+    }
+
+    init(
+        isAccessibilityTrusted: @escaping () -> Bool,
+        makeListener: @escaping (FringeGestureConfig, @escaping (FringeGestureEffect) -> Void) -> any FringeListening
+    ) {
+        self.isAccessibilityTrusted = isAccessibilityTrusted
+        self.makeListener = makeListener
+        self.isAccessibilityGranted = isAccessibilityTrusted()
+    }
 
     public func start(with host: DropletHost?) {
         self.host = host
@@ -86,7 +102,7 @@ public final class FringeEngine: ObservableObject {
             return
         }
 
-        let granted = AXIsProcessTrusted()
+        let granted = isAccessibilityTrusted()
         isAccessibilityGranted = granted
         if !granted {
             stopListening()
@@ -97,13 +113,15 @@ public final class FringeEngine: ObservableObject {
         stopRetryTimer()
 
         let config = FringeGestureConfig(settings: settings)
-        if let tap {
+        if let tap, tap.isRunning {
             tap.update(config)
-            isListening = tap.isRunning
+            isListening = true
             return
         }
+        // A listener that never started is replaced, not updated.
+        stopListening()
 
-        let tap = FringeEdgeTap(config: config) { [weak self] effect in
+        let tap = makeListener(config) { [weak self] effect in
             self?.apply(effect)
         }
         self.tap = tap
@@ -145,7 +163,7 @@ public final class FringeEngine: ObservableObject {
             stopRetryTimer()
             return
         }
-        let granted = AXIsProcessTrusted()
+        let granted = isAccessibilityTrusted()
         if granted != isAccessibilityGranted {
             isAccessibilityGranted = granted
             if granted {
@@ -159,7 +177,7 @@ public final class FringeEngine: ObservableObject {
     }
 
     public func refreshAccessibilityStatus() {
-        isAccessibilityGranted = AXIsProcessTrusted()
+        isAccessibilityGranted = isAccessibilityTrusted()
         if isAccessibilityGranted && settings.isEnabled && !isListening {
             applySettings()
         }
@@ -246,11 +264,20 @@ struct FringeGestureConfig: Sendable, Equatable {
     }
 }
 
-enum FringeGestureEffect: Sendable {
+enum FringeGestureEffect: Sendable, Equatable {
     case engaged(FringeEdge, FringeAction)
     case disengaged
     case stepped(FringeAction, increase: Bool)
     case cornerTriggered(FringeCorner, FringeCornerAction)
+}
+
+/// Implemented by FringeEdgeTap, and by a fake in tests.
+@MainActor
+protocol FringeListening: AnyObject {
+    var isRunning: Bool { get }
+    func start()
+    func stop()
+    func update(_ config: FringeGestureConfig)
 }
 
 /// A listen-only tap on trackpad gesture events, on the main run loop, as
@@ -263,7 +290,7 @@ enum FringeGestureEffect: Sendable {
 /// post a key when a step lands. Every member is used on the main thread
 /// only.
 @MainActor
-final class FringeEdgeTap {
+final class FringeEdgeTap: FringeListening {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var config: FringeGestureConfig
@@ -431,7 +458,8 @@ struct FringeGestureTracker {
     mutating func handle(
         _ rawTouches: [FringeTouch],
         flags: NSEvent.ModifierFlags,
-        config: FringeGestureConfig
+        config: FringeGestureConfig,
+        now: TimeInterval = ProcessInfo.processInfo.systemUptime
     ) -> [FringeGestureEffect] {
         var effects: [FringeGestureEffect] = []
 
@@ -441,7 +469,6 @@ struct FringeGestureTracker {
             disqualifiedTouches.remove(touch.key)
 
             if touch.phase == .ended, let candidate = activeTapCandidate, candidate.touchKey == touch.key {
-                let now = ProcessInfo.processInfo.systemUptime
                 let duration = now - candidate.startTime
                 let totalDisp = hypot(touch.position.x - candidate.startPos.x, touch.position.y - candidate.startPos.y)
                 let maxDisp = max(candidate.maxDisplacement, totalDisp)
@@ -491,9 +518,15 @@ struct FringeGestureTracker {
         // resting state on that moving contact.
         if surfaceTouches.count > 1 || (!isEngaged && surfaceTouches.contains(where: { $0.isResting })) {
             endGesture(&effects)
-            activeTapCandidate = nil
             for touch in surfaceTouches {
                 disqualifiedTouches.insert(touch.key)
+            }
+            // One resting finger can still tap: the firmware often flags corner contacts as resting.
+            if surfaceTouches.count == 1, let touch = surfaceTouches.first, config.modifierGuard.matches(flags: flags) {
+                trackTap(touch, now: now)
+                seenTouches.insert(touch.key)
+            } else {
+                activeTapCandidate = nil
             }
             return effects
         }
@@ -507,29 +540,8 @@ struct FringeGestureTracker {
 
         let margin = config.margin
 
-        // Tap candidate tracking for a single touch in any corner.
         if let touch = surfaceTouches.first {
-            let now = ProcessInfo.processInfo.systemUptime
-            if activeTapCandidate == nil && !seenTouches.contains(touch.key) {
-                let corner = Self.corner(at: touch.position)
-                if corner != nil {
-                    activeTapCandidate = TapCandidate(
-                        touchKey: touch.key,
-                        startPos: touch.position,
-                        startTime: now,
-                        corner: corner,
-                        maxDisplacement: 0
-                    )
-                }
-            } else if var candidate = activeTapCandidate, candidate.touchKey == touch.key {
-                let disp = hypot(touch.position.x - candidate.startPos.x, touch.position.y - candidate.startPos.y)
-                candidate.maxDisplacement = max(candidate.maxDisplacement, disp)
-                if candidate.maxDisplacement > Self.maxTapDisplacement * 1.5 {
-                    activeTapCandidate = nil
-                } else {
-                    activeTapCandidate = candidate
-                }
-            }
+            trackTap(touch, now: now)
         }
 
         // Not dragging yet: this touch may start a drag. One picked in a
@@ -617,6 +629,29 @@ struct FringeGestureTracker {
             return effects
         }
         return effects
+    }
+
+    private mutating func trackTap(_ touch: FringeTouch, now: TimeInterval) {
+        if activeTapCandidate == nil && !seenTouches.contains(touch.key) {
+            let corner = Self.corner(at: touch.position)
+            if corner != nil {
+                activeTapCandidate = TapCandidate(
+                    touchKey: touch.key,
+                    startPos: touch.position,
+                    startTime: now,
+                    corner: corner,
+                    maxDisplacement: 0
+                )
+            }
+        } else if var candidate = activeTapCandidate, candidate.touchKey == touch.key {
+            let disp = hypot(touch.position.x - candidate.startPos.x, touch.position.y - candidate.startPos.y)
+            candidate.maxDisplacement = max(candidate.maxDisplacement, disp)
+            if candidate.maxDisplacement > Self.maxTapDisplacement * 1.5 {
+                activeTapCandidate = nil
+            } else {
+                activeTapCandidate = candidate
+            }
+        }
     }
 
     /// Corner region check for double-tap gestures.

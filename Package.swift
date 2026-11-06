@@ -27,6 +27,14 @@ let package = Package(
                 .product(name: "DroppyKitHarness", package: "droppykit")
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .testTarget(
+            name: "FringeTests",
+            dependencies: [
+                "Fringe",
+                .product(name: "DroppyKitHarness", package: "droppykit")
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )
